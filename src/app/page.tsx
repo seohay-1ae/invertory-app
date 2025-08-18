@@ -7,7 +7,7 @@ import { Part } from "@/types/Part";
 export default function PartsPage() {
   const [parts, setParts] = useState<Part[]>([]);
   const [search, setSearch] = useState("");
-  const [formPart, setFormPart] = useState<Partial<Part>>({}); // 등록/수정용 폼
+  const [formPart, setFormPart] = useState<Partial<Part> & { aliase?: string | string[] }>({}); // 등록/수정용 폼
 
   // 데이터 가져오기
   const fetchParts = async () => {
@@ -27,7 +27,7 @@ export default function PartsPage() {
       const lowerSearch = search.toLowerCase().replace(/\s/g, ""); // 공백 제거
       filteredParts = filteredParts.filter((p) => {
         const name = p.name.toLowerCase().replace(/\s/g, "");
-        const aliase = p.aliase.map((a) => a.toLowerCase().replace(/\s/g, ""));
+        const aliase = (p.aliase ?? []).map((a) => a.toLowerCase().replace(/\s/g, ""));
         return name.includes(lowerSearch) || aliase.some((a) => a.includes(lowerSearch));
       });
     }
@@ -35,10 +35,16 @@ export default function PartsPage() {
     setParts(filteredParts);
   };
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     fetchParts();
   }, [search]);
+
+  // string 또는 string[]를 배열로 변환
+  const normalizeAliase = (value: string | string[] | undefined): string[] => {
+    if (!value) return [];
+    if (typeof value === "string") return value.split(",").map((a) => a.trim());
+    return value;
+  };
 
   // 등록
   const handleAddPart = async () => {
@@ -47,18 +53,10 @@ export default function PartsPage() {
       return;
     }
 
-    // string 또는 string[] 처리
-    let aliaseArray: string[] = [];
-    if (typeof formPart.aliase === "string") {
-      aliaseArray = formPart.aliase.split(",").map((a) => a.trim());
-    } else if (Array.isArray(formPart.aliase)) {
-      aliaseArray = formPart.aliase;
-    }
-
     const { error } = await supabase.from("inventory").insert([
       {
         name: formPart.name,
-        aliase: aliaseArray,
+        aliase: normalizeAliase(formPart.aliase),
         vehicle_stock: formPart.vehicle_stock ?? 0,
         warehouse_stock: formPart.warehouse_stock ?? 0,
         price: formPart.price ?? 0,
@@ -79,12 +77,12 @@ export default function PartsPage() {
     if (!formPart.id) return;
 
     const updateData: Partial<Part> = { ...formPart };
+    updateData.aliase = normalizeAliase(updateData.aliase);
 
-    if (typeof updateData.aliase === "string") {
-      updateData.aliase = updateData.aliase.split(",").map((a) => a.trim());
-    }
-
-    const { error } = await supabase.from("inventory").update(updateData).eq("id", formPart.id);
+    const { error } = await supabase
+      .from("inventory")
+      .update(updateData)
+      .eq("id", formPart.id);
 
     if (error) {
       console.error(error);
@@ -114,7 +112,7 @@ export default function PartsPage() {
     setFormPart({
       id: part.id,
       name: part.name,
-      aliase: part.aliase.join(", "),
+      aliase: part.aliase.join(", "), // 폼에서는 string으로 처리
       vehicle_stock: part.vehicle_stock,
       warehouse_stock: part.warehouse_stock,
       price: part.price,
@@ -122,9 +120,7 @@ export default function PartsPage() {
   };
 
   // 폼 초기화
-  const handleClearForm = () => {
-    setFormPart({});
-  };
+  const handleClearForm = () => setFormPart({});
 
   // 부품값 입력 시 숫자만
   const handlePriceChange = (value: string) => {
@@ -159,7 +155,7 @@ export default function PartsPage() {
 
       {/* 등록/수정 폼 */}
       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-        {/* 1행: 부품명 + 별칭 (1:2 비율) */}
+        {/* 1행: 부품명 + 별칭 */}
         <div style={{ display: "flex", gap: "12px" }}>
           <div style={{ flex: 1 }}>
             <label style={{ display: "block", fontWeight: 500, marginBottom: "2px" }}>부품명</label>
@@ -175,14 +171,14 @@ export default function PartsPage() {
               별칭 (쉼표 구분)
             </label>
             <input
-              value={formPart.aliase ?? ""}
+              value={typeof formPart.aliase === "string" ? formPart.aliase : (formPart.aliase ?? []).join(", ")}
               onChange={(e) => setFormPart({ ...formPart, aliase: e.target.value })}
               style={{ width: "100%", padding: "6px", border: "1px solid #ccc", borderRadius: "4px" }}
             />
           </div>
         </div>
 
-        {/* 2행: 차량재고, 창고재고, 부품값 (동일 비율) */}
+        {/* 2행: 차량재고, 창고재고, 부품값 */}
         <div style={{ display: "flex", gap: "12px" }}>
           <div style={{ flex: 1 }}>
             <label style={{ display: "block", fontWeight: 500, marginBottom: "2px" }}>차량재고</label>
@@ -269,7 +265,7 @@ export default function PartsPage() {
             {parts.map((part) => (
               <tr key={part.id} style={{ cursor: "pointer" }} onClick={() => handleSelectPart(part)}>
                 <td style={{ border: "1px solid #ccc", padding: "4px" }}>{part.name}</td>
-                <td style={{ border: "1px solid #ccc", padding: "4px" }}>{part.aliase.join(", ")}</td>
+                <td style={{ border: "1px solid #ccc", padding: "4px" }}>{(part.aliase ?? []).join(", ")}</td>
                 <td style={{ border: "1px solid #ccc", padding: "4px" }}>{part.vehicle_stock}</td>
                 <td style={{ border: "1px solid #ccc", padding: "4px" }}>{part.warehouse_stock}</td>
                 <td style={{ border: "1px solid #ccc", padding: "4px" }}>{part.price.toLocaleString()}</td>
