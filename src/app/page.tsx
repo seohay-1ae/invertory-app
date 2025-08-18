@@ -3,8 +3,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Part } from "@/types/Part";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 export default function PartsPage() {
   const [parts, setParts] = useState<Part[]>([]);
@@ -37,6 +35,7 @@ export default function PartsPage() {
     setParts(filteredParts);
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     fetchParts();
   }, [search]);
@@ -71,7 +70,7 @@ export default function PartsPage() {
   const handleUpdatePart = async () => {
     if (!formPart.id) return;
 
-    const updateData: any = { ...formPart };
+    const updateData: Partial<Part> = { ...formPart };
 
     if (typeof updateData.aliase === "string") {
       updateData.aliase = updateData.aliase.split(",").map((a) => a.trim());
@@ -132,13 +131,13 @@ export default function PartsPage() {
         display: "flex",
         flexDirection: "column",
         gap: "24px",
-        maxWidth: "1200px", // 최대 너비 지정
-        margin: "0 auto",   // 화면 중앙 정렬
+        maxWidth: "1200px",
+        margin: "0 auto",
       }}
     >
       {/* 검색 */}
       <div>
-        <label style={{ display: "block", fontWeight: 600, marginBottom: "4px",color:"#2b52c0ff" }}>검색:</label>
+        <label style={{ display: "block", fontWeight: 600, marginBottom: "4px", color: "#2b52c0ff" }}>검색:</label>
         <div style={{ position: "relative", width: "100%" }}>
           <input
             type="text"
@@ -147,7 +146,7 @@ export default function PartsPage() {
             onChange={(e) => setSearch(e.target.value)}
             style={{
               width: "100%",
-              padding: "8px 30px 8px 8px", // 오른쪽 버튼 공간 확보
+              padding: "8px 30px 8px 8px",
               border: "1px solid #ccc",
               borderRadius: "4px",
               boxSizing: "border-box",
@@ -175,99 +174,100 @@ export default function PartsPage() {
         </div>
       </div>
 
-  {/* 등록/수정 폼 */}
-<div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-  {/* 1행: 부품명 + 별칭 (1:2 비율) */}
-  <div style={{ display: "flex", gap: "12px" }}>
-    <div style={{ flex: 1 }}> {/* 부품명 */}
-      <label style={{ display: "block", fontWeight: 500, marginBottom: "2px" }}>부품명</label>
-      <input
-        value={formPart.name ?? ""}
-        onChange={(e) => setFormPart({ ...formPart, name: e.target.value })}
-        style={{ width: "100%", padding: "6px", border: "1px solid #ccc", borderRadius: "4px" }}
-      />
-    </div>
+      {/* 등록/수정 폼 */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        {/* 1행: 부품명 + 별칭 (1:2 비율) */}
+        <div style={{ display: "flex", gap: "12px" }}>
+          <div style={{ flex: 1 }}>
+            <label style={{ display: "block", fontWeight: 500, marginBottom: "2px" }}>부품명</label>
+            <input
+              value={formPart.name ?? ""}
+              onChange={(e) => setFormPart({ ...formPart, name: e.target.value })}
+              style={{ width: "100%", padding: "6px", border: "1px solid #ccc", borderRadius: "4px" }}
+            />
+          </div>
 
-    <div style={{ flex: 2 }}> {/* 별칭 */}
-      <label style={{ display: "block", fontWeight: 500, marginBottom: "2px",color:"#2b52c0ff" }}>별칭 (쉼표 구분)</label>
-      <input
-        value={formPart.aliase ?? ""}
-        onChange={(e) => setFormPart({ ...formPart, aliase: e.target.value })}
-        style={{ width: "100%", padding: "6px", border: "1px solid #ccc", borderRadius: "4px" }}
-      />
-    </div>
-  </div>
+          <div style={{ flex: 2 }}>
+            <label style={{ display: "block", fontWeight: 500, marginBottom: "2px", color: "#2b52c0ff" }}>
+              별칭 (쉼표 구분)
+            </label>
+            <input
+              value={formPart.aliase ?? ""}
+              onChange={(e) => setFormPart({ ...formPart, aliase: e.target.value })}
+              style={{ width: "100%", padding: "6px", border: "1px solid #ccc", borderRadius: "4px" }}
+            />
+          </div>
+        </div>
 
-  {/* 2행: 차량재고, 창고재고, 부품값 (동일 비율) */}
-  <div style={{ display: "flex", gap: "12px" }}>
-    <div style={{ flex: 1 }}>
-      <label style={{ display: "block", fontWeight: 500, marginBottom: "2px" }}>차량재고</label>
-      <input
-        type="number"
-        value={formPart.vehicle_stock ?? 0}
-        onChange={(e) => setFormPart({ ...formPart, vehicle_stock: Number(e.target.value) })}
-        style={{ width: "100%", padding: "6px", border: "1px solid #ccc", borderRadius: "4px" }}
-      />
-    </div>
+        {/* 2행: 차량재고, 창고재고, 부품값 (동일 비율) */}
+        <div style={{ display: "flex", gap: "12px" }}>
+          <div style={{ flex: 1 }}>
+            <label style={{ display: "block", fontWeight: 500, marginBottom: "2px" }}>차량재고</label>
+            <input
+              type="number"
+              value={formPart.vehicle_stock ?? 0}
+              onChange={(e) => setFormPart({ ...formPart, vehicle_stock: Number(e.target.value) })}
+              style={{ width: "100%", padding: "6px", border: "1px solid #ccc", borderRadius: "4px" }}
+            />
+          </div>
 
-    <div style={{ flex: 1 }}>
-      <label style={{ display: "block", fontWeight: 500, marginBottom: "2px" }}>창고재고</label>
-      <input
-        type="number"
-        value={formPart.warehouse_stock ?? 0}
-        onChange={(e) => setFormPart({ ...formPart, warehouse_stock: Number(e.target.value) })}
-        style={{ width: "100%", padding: "6px", border: "1px solid #ccc", borderRadius: "4px" }}
-      />
-    </div>
+          <div style={{ flex: 1 }}>
+            <label style={{ display: "block", fontWeight: 500, marginBottom: "2px" }}>창고재고</label>
+            <input
+              type="number"
+              value={formPart.warehouse_stock ?? 0}
+              onChange={(e) => setFormPart({ ...formPart, warehouse_stock: Number(e.target.value) })}
+              style={{ width: "100%", padding: "6px", border: "1px solid #ccc", borderRadius: "4px" }}
+            />
+          </div>
 
-    <div style={{ flex: 1 }}>
-      <label style={{ display: "block", fontWeight: 500, marginBottom: "2px" }}>부품값</label>
-      <input
-        value={(formPart.price ?? 0).toLocaleString()}
-        onChange={(e) => handlePriceChange(e.target.value)}
-        style={{ width: "100%", padding: "6px", border: "1px solid #ccc", borderRadius: "4px" }}
-      />
-    </div>
-  </div>
-</div>
+          <div style={{ flex: 1 }}>
+            <label style={{ display: "block", fontWeight: 500, marginBottom: "2px" }}>부품값</label>
+            <input
+              value={(formPart.price ?? 0).toLocaleString()}
+              onChange={(e) => handlePriceChange(e.target.value)}
+              style={{ width: "100%", padding: "6px", border: "1px solid #ccc", borderRadius: "4px" }}
+            />
+          </div>
+        </div>
+      </div>
 
-<div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "12px" }}>
-  {/* 등록 / 수정 버튼 (초록색) */}
-  <button
-    style={{
-      width: "100%",
-      backgroundColor: "#35e074ff", // 초록색
-      color: "black",
-      fontWeight: 600,
-      padding: "4px 8px",
-      borderRadius: "8px",
-      border: "none",
-      cursor: "pointer",
-      boxShadow: "none", // 그림자 제거
-    }}
-    onClick={formPart.id ? handleUpdatePart : handleAddPart}
-  >
-    {formPart.id ? "수정 / 저장" : "등록"}
-  </button>
+      {/* 버튼 */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "12px" }}>
+        <button
+          style={{
+            width: "100%",
+            backgroundColor: "#35e074ff",
+            color: "black",
+            fontWeight: 600,
+            padding: "4px 8px",
+            borderRadius: "8px",
+            border: "none",
+            cursor: "pointer",
+            boxShadow: "none",
+          }}
+          onClick={formPart.id ? handleUpdatePart : handleAddPart}
+        >
+          {formPart.id ? "수정 / 저장" : "등록"}
+        </button>
 
-  {/* 폼 초기화 버튼 (주황색) */}
-  <button
-    style={{
-      width: "100%",
-      backgroundColor: "#ff9b53ff", // 주황색
-      color: "black",
-      fontWeight: 600,
-      padding: "4px 8px",
-      borderRadius: "8px",
-      border: "none",
-      cursor: "pointer",
-      boxShadow: "none",
-    }}
-    onClick={handleClearForm}
-  >
-    폼 초기화
-  </button>
-</div>
+        <button
+          style={{
+            width: "100%",
+            backgroundColor: "#ff9b53ff",
+            color: "black",
+            fontWeight: 600,
+            padding: "4px 8px",
+            borderRadius: "8px",
+            border: "none",
+            cursor: "pointer",
+            boxShadow: "none",
+          }}
+          onClick={handleClearForm}
+        >
+          폼 초기화
+        </button>
+      </div>
 
       {/* 부품 테이블 */}
       <div style={{ overflowX: "auto", marginTop: "16px" }}>
@@ -284,11 +284,7 @@ export default function PartsPage() {
           </thead>
           <tbody>
             {parts.map((part) => (
-              <tr
-                key={part.id}
-                style={{ cursor: "pointer" }}
-                onClick={() => handleSelectPart(part)}
-              >
+              <tr key={part.id} style={{ cursor: "pointer" }} onClick={() => handleSelectPart(part)}>
                 <td style={{ border: "1px solid #ccc", padding: "4px" }}>{part.name}</td>
                 <td style={{ border: "1px solid #ccc", padding: "4px" }}>{part.aliase.join(", ")}</td>
                 <td style={{ border: "1px solid #ccc", padding: "4px" }}>{part.vehicle_stock}</td>
@@ -297,7 +293,7 @@ export default function PartsPage() {
                 <td style={{ border: "1px solid #ccc", padding: "4px" }}>
                   <button
                     style={{
-                      backgroundColor: "#ef4444", // 빨강
+                      backgroundColor: "#ef4444",
                       color: "#fff",
                       fontWeight: 600,
                       padding: "2px 4px",
@@ -307,7 +303,7 @@ export default function PartsPage() {
                       boxShadow: "none",
                     }}
                     onClick={(e) => {
-                      e.stopPropagation(); // 클릭 전파 막음
+                      e.stopPropagation();
                       handleDeletePart(part.id);
                     }}
                   >
