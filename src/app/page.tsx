@@ -24,12 +24,12 @@ export default function PartsPage() {
     let filteredParts = data as Part[];
 
     if (search.trim() !== "") {
-      const lowerSearch = search.toLowerCase();
-      filteredParts = filteredParts.filter(
-        (p) =>
-          p.name.toLowerCase().includes(lowerSearch) ||
-          p.aliase.some((a) => a.toLowerCase().includes(lowerSearch))
-      );
+      const lowerSearch = search.toLowerCase().replace(/\s/g, ""); // 공백 제거
+      filteredParts = filteredParts.filter((p) => {
+        const name = p.name.toLowerCase().replace(/\s/g, "");
+        const aliase = p.aliase.map((a) => a.toLowerCase().replace(/\s/g, ""));
+        return name.includes(lowerSearch) || aliase.some((a) => a.includes(lowerSearch));
+      });
     }
 
     setParts(filteredParts);
@@ -47,10 +47,18 @@ export default function PartsPage() {
       return;
     }
 
+    // string 또는 string[] 처리
+    let aliaseArray: string[] = [];
+    if (typeof formPart.aliase === "string") {
+      aliaseArray = formPart.aliase.split(",").map((a) => a.trim());
+    } else if (Array.isArray(formPart.aliase)) {
+      aliaseArray = formPart.aliase;
+    }
+
     const { error } = await supabase.from("inventory").insert([
       {
         name: formPart.name,
-        aliase: (formPart.aliase as string).split(",").map((a) => a.trim()),
+        aliase: aliaseArray,
         vehicle_stock: formPart.vehicle_stock ?? 0,
         warehouse_stock: formPart.warehouse_stock ?? 0,
         price: formPart.price ?? 0,
@@ -125,16 +133,7 @@ export default function PartsPage() {
   };
 
   return (
-    <div
-      style={{
-        padding: "16px",
-        display: "flex",
-        flexDirection: "column",
-        gap: "24px",
-        maxWidth: "1200px",
-        margin: "0 auto",
-      }}
-    >
+    <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "24px", maxWidth: "1200px", margin: "0 auto" }}>
       {/* 검색 */}
       <div>
         <label style={{ display: "block", fontWeight: 600, marginBottom: "4px", color: "#2b52c0ff" }}>검색:</label>
@@ -144,29 +143,13 @@ export default function PartsPage() {
             placeholder="부품명 또는 별칭 검색"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "8px 30px 8px 8px",
-              border: "1px solid #ccc",
-              borderRadius: "4px",
-              boxSizing: "border-box",
-            }}
+            style={{ width: "100%", padding: "8px 30px 8px 8px", border: "1px solid #ccc", borderRadius: "4px", boxSizing: "border-box" }}
           />
           {search && (
             <button
               type="button"
               onClick={() => setSearch("")}
-              style={{
-                position: "absolute",
-                right: "5px",
-                top: "50%",
-                transform: "translateY(-50%)",
-                border: "none",
-                background: "transparent",
-                cursor: "pointer",
-                fontSize: "16px",
-                color: "#888",
-              }}
+              style={{ position: "absolute", right: "5px", top: "50%", transform: "translateY(-50%)", border: "none", background: "transparent", cursor: "pointer", fontSize: "16px", color: "#888" }}
             >
               ✕
             </button>
