@@ -7,7 +7,9 @@ import { Part } from "@/types/Part";
 export default function PartsPage() {
   const [parts, setParts] = useState<Part[]>([]);
   const [search, setSearch] = useState("");
-  const [formPart, setFormPart] = useState<Partial<Part> & { aliase?: string | string[] }>({}); // 등록/수정용 폼
+  type FormPart = Omit<Part, "aliase"> & { aliase?: string | string[] };
+  const [formPart, setFormPart] = useState<Partial<FormPart>>({});
+
 
   // 데이터 가져오기
   const fetchParts = async () => {
@@ -76,8 +78,11 @@ export default function PartsPage() {
   const handleUpdatePart = async () => {
     if (!formPart.id) return;
 
-    const updateData: Partial<Part> = { ...formPart };
-    updateData.aliase = normalizeAliase(updateData.aliase);
+     // formPart.aliase를 string[]로 변환
+  const updateData: Partial<Part> = {
+    ...formPart,
+    aliase: normalizeAliase(formPart.aliase),
+  };
 
     const { error } = await supabase
       .from("inventory")
@@ -103,21 +108,26 @@ export default function PartsPage() {
       console.error(error);
       alert("삭제 실패");
     } else {
-      fetchParts();
-    }
-  };
+    // 폼 초기화
+    setFormPart({});
+    // 테이블 갱신
+    fetchParts();
+  }
+};
 
   // 테이블 행 클릭 -> 폼으로 데이터 보내기
-  const handleSelectPart = (part: Part) => {
-    setFormPart({
-      id: part.id,
-      name: part.name,
-      aliase: part.aliase.join(", "), // 폼에서는 string으로 처리
-      vehicle_stock: part.vehicle_stock,
-      warehouse_stock: part.warehouse_stock,
-      price: part.price,
-    });
-  };
+const handleSelectPart = (part: Part) => {
+  setFormPart({
+    id: part.id,
+    name: part.name,
+    aliase: (part.aliase ?? []).join(", ") as string,
+    vehicle_stock: part.vehicle_stock,
+    warehouse_stock: part.warehouse_stock,
+    price: part.price,
+  });
+};
+
+
 
   // 폼 초기화
   const handleClearForm = () => setFormPart({});
