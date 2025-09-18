@@ -117,9 +117,9 @@ export default function PartsPage() {
       {
         name: formPart.name,
         aliase: normalizeAliase(formPart.aliase),
-        vehicle_stock: formPart.vehicle_stock === "" ? "" : formPart.vehicle_stock,
-        warehouse_stock: formPart.warehouse_stock === "" ? "" : formPart.warehouse_stock,
-        price: formPart.price === "" ? "" : formPart.price,
+        vehicle_stock: formPart.vehicle_stock,
+        warehouse_stock: formPart.warehouse_stock,
+        price: formPart.price,
       },
     ]);
 
@@ -276,7 +276,7 @@ const handleSelectPart = (part: Part) => {
             <label style={{ display: "block", fontWeight: 500, marginBottom: "2px" }}>차량재고</label>
             <input
               type="text"
-              value={formPart.vehicle_stock === "" || formPart.vehicle_stock === undefined ? "" : formPart.vehicle_stock}
+              value={formPart.vehicle_stock === "" || formPart.vehicle_stock === undefined || formPart.vehicle_stock === null ? "" : String(formPart.vehicle_stock)}
               onChange={(e) => handleStockChange('vehicle_stock', e.target.value)}
               style={{ width: "100%", padding: "6px", border: "1px solid #ccc", borderRadius: "4px" }}
             />
@@ -286,7 +286,7 @@ const handleSelectPart = (part: Part) => {
             <label style={{ display: "block", fontWeight: 500, marginBottom: "2px" }}>창고재고</label>
             <input
               type="text"
-              value={formPart.warehouse_stock === "" || formPart.warehouse_stock === undefined ? "" : formPart.warehouse_stock}
+              value={formPart.warehouse_stock === "" || formPart.warehouse_stock === undefined || formPart.warehouse_stock === null ? "" : String(formPart.warehouse_stock)}
               onChange={(e) => handleStockChange('warehouse_stock', e.target.value)}
               style={{ width: "100%", padding: "6px", border: "1px solid #ccc", borderRadius: "4px" }}
             />
@@ -296,7 +296,7 @@ const handleSelectPart = (part: Part) => {
             <label style={{ display: "block", fontWeight: 500, marginBottom: "2px" }}>부품값</label>
             <input
               type="text"
-              value={formPart.price === "" || formPart.price === undefined ? "" : formPart.price}
+              value={formPart.price === "" || formPart.price === undefined || formPart.price === null ? "" : String(formPart.price)}
               onChange={(e) => handlePriceChange(e.target.value)}
               style={{ width: "100%", padding: "6px", border: "1px solid #ccc", borderRadius: "4px" }}
             />
@@ -403,9 +403,9 @@ const handleSelectPart = (part: Part) => {
               >
                 <td style={{ border: "1px solid #ccc", padding: "4px" }}>{part.name}</td>
                 <td style={{ border: "1px solid #ccc", padding: "4px" }}>{(part.aliase ?? []).join(", ")}</td>
-                <td style={{ border: "1px solid #ccc", padding: "4px" }}>{part.vehicle_stock === "" ? "-" : part.vehicle_stock}</td>
-                <td style={{ border: "1px solid #ccc", padding: "4px" }}>{part.warehouse_stock === "" ? "-" : part.warehouse_stock}</td>
-                <td style={{ border: "1px solid #ccc", padding: "4px" }}>{part.price === "" || part.price === 0 ? "-" : (typeof part.price === "number" ? part.price.toLocaleString() : (part.price && !isNaN(Number(part.price)) ? Number(part.price).toLocaleString() : part.price))}</td>
+                <td style={{ border: "1px solid #ccc", padding: "4px" }}>{part.vehicle_stock === "" ? "" : part.vehicle_stock}</td>
+                <td style={{ border: "1px solid #ccc", padding: "4px" }}>{part.warehouse_stock === "" ? "" : part.warehouse_stock}</td>
+                <td style={{ border: "1px solid #ccc", padding: "4px" }}>{part.price === "" ? "" : (typeof part.price === "number" ? part.price.toLocaleString() : (part.price && !isNaN(Number(part.price)) ? Number(part.price).toLocaleString() : part.price))}</td>
                 <td style={{ border: "1px solid #ccc", padding: "4px" }}>
                   <button
                     style={{
