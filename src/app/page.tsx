@@ -3,12 +3,18 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Part } from "@/types/Part";
+import { useToast } from "@/components/ui/toast";
 
 export default function PartsPage() {
   const [parts, setParts] = useState<Part[]>([]);
   const [search, setSearch] = useState("");
+  const [allParts, setAllParts] = useState<Part[]>([]); // 전체 부품 데이터 저장용
+  const [showLowStock, setShowLowStock] = useState(false); // 재고 부족 필터 상태
+  const [showZeroVehicleStock, setShowZeroVehicleStock] = useState(false); // 차량재고 0 필터 상태
+  const [highlightedPartId, setHighlightedPartId] = useState<number | null>(null); // 하이라이트할 부품 ID
   type FormPart = Omit<Part, "aliase"> & { aliase?: string | string[] };
   const [formPart, setFormPart] = useState<Partial<FormPart>>({});
+  const { showToast } = useToast();
 
 
   // 데이터 가져오기
@@ -23,8 +29,12 @@ export default function PartsPage() {
       return;
     }
 
-    let filteredParts = data as Part[];
+    const allPartsData = data as Part[];
+    setAllParts(allPartsData); // 전체 데이터 저장
 
+    let filteredParts = allPartsData;
+
+    // 검색 필터
     if (search.trim() !== "") {
       const lowerSearch = search.toLowerCase().replace(/\s/g, ""); // 공백 제거
       filteredParts = filteredParts.filter((p) => {
@@ -34,18 +44,55 @@ export default function PartsPage() {
       });
     }
 
+    // 재고 부족 필터 (차량재고 + 창고재고 <= 3)
+    if (showLowStock) {
+      filteredParts = filteredParts.filter((p) => {
+        // 문자열이나 숫자를 모두 숫자로 변환
+        const vehicleStock = p.vehicle_stock === "" || p.vehicle_stock === null || p.vehicle_stock === undefined 
+          ? 0 
+          : (typeof p.vehicle_stock === "number" ? p.vehicle_stock : Number(p.vehicle_stock) || 0);
+        
+        const warehouseStock = p.warehouse_stock === "" || p.warehouse_stock === null || p.warehouse_stock === undefined 
+          ? 0 
+          : (typeof p.warehouse_stock === "number" ? p.warehouse_stock : Number(p.warehouse_stock) || 0);
+        
+        return vehicleStock + warehouseStock <= 3;
+      });
+    }
+
+    // 차량재고 0 필터
+    if (showZeroVehicleStock) {
+      filteredParts = filteredParts.filter((p) => {
+        const vehicleStock = p.vehicle_stock === "" || p.vehicle_stock === null || p.vehicle_stock === undefined 
+          ? 0 
+          : (typeof p.vehicle_stock === "number" ? p.vehicle_stock : Number(p.vehicle_stock) || 0);
+        
+        return vehicleStock === 0;
+      });
+    }
+
     setParts(filteredParts);
   };
 
   useEffect(() => {
     fetchParts();
-  }, [search]);
+  }, [search, showLowStock, showZeroVehicleStock]);
 
   // string 또는 string[]를 배열로 변환
   const normalizeAliase = (value: string | string[] | undefined): string[] => {
     if (!value) return [];
     if (typeof value === "string") return value.split(",").map((a) => a.trim());
     return value;
+  };
+
+  // 부품명 중복 체크 (띄어쓰기 무시)
+  const checkDuplicatePart = (partName: string): Part | null => {
+    const normalizedInput = partName.toLowerCase().replace(/\s/g, "");
+    
+    return allParts.find(part => {
+      const normalizedPartName = part.name.toLowerCase().replace(/\s/g, "");
+      return normalizedPartName === normalizedInput;
+    }) || null;
   };
 
   // 등록
@@ -55,13 +102,24 @@ export default function PartsPage() {
       return;
     }
 
+    // 중복 체크
+    const duplicatePart = checkDuplicatePart(formPart.name);
+    if (duplicatePart) {
+      showToast("이미 등록된 부품입니다", "warning");
+      // 중복된 부품으로 검색하여 결과 표시
+      setSearch(duplicatePart.name);
+      // 폼 초기화
+      setFormPart({});
+      return;
+    }
+
     const { error } = await supabase.from("inventory").insert([
       {
         name: formPart.name,
         aliase: normalizeAliase(formPart.aliase),
-        vehicle_stock: formPart.vehicle_stock ?? 0,
-        warehouse_stock: formPart.warehouse_stock ?? 0,
-        price: formPart.price ?? 0,
+        vehicle_stock: formPart.vehicle_stock === "" ? "" : formPart.vehicle_stock,
+        warehouse_stock: formPart.warehouse_stock === "" ? "" : formPart.warehouse_stock,
+        price: formPart.price === "" ? "" : formPart.price,
       },
     ]);
 
@@ -71,6 +129,7 @@ export default function PartsPage() {
     } else {
       setFormPart({});
       fetchParts();
+      showToast("부품이 성공적으로 등록되었습니다", "success");
     }
   };
 
@@ -91,10 +150,12 @@ export default function PartsPage() {
 
     if (error) {
       console.error(error);
-      alert("수정 실패");
+      showToast("수정 실패", "error");
     } else {
       setFormPart({});
       fetchParts();
+      showToast("부품이 성공적으로 수정되었습니다", "success");
+      highlightPart(formPart.id); // 수정된 부품 하이라이트
     }
   };
 
@@ -106,13 +167,14 @@ export default function PartsPage() {
 
     if (error) {
       console.error(error);
-      alert("삭제 실패");
+      showToast("삭제 실패", "error");
     } else {
-    // 폼 초기화
-    setFormPart({});
-    // 테이블 갱신
-    fetchParts();
-  }
+      // 폼 초기화
+      setFormPart({});
+      // 테이블 갱신
+      fetchParts();
+      showToast("부품이 성공적으로 삭제되었습니다", "success");
+    }
 };
 
   // 테이블 행 클릭 -> 폼으로 데이터 보내기
@@ -134,8 +196,28 @@ const handleSelectPart = (part: Part) => {
 
   // 부품값 입력 시 숫자만
   const handlePriceChange = (value: string) => {
-    const num = Number(value.replace(/,/g, ""));
-    setFormPart({ ...formPart, price: isNaN(num) ? 0 : num });
+    // 숫자와 빈 문자열만 허용
+    if (value === "" || /^\d+$/.test(value)) {
+      const num = value === "" ? "" : Number(value);
+      setFormPart({ ...formPart, price: num });
+    }
+  };
+
+  // 재고 입력 시 숫자만
+  const handleStockChange = (field: 'vehicle_stock' | 'warehouse_stock', value: string) => {
+    // 숫자와 빈 문자열만 허용
+    if (value === "" || /^\d+$/.test(value)) {
+      const num = value === "" ? "" : Number(value);
+      setFormPart({ ...formPart, [field]: num });
+    }
+  };
+
+  // 부품 하이라이트 함수
+  const highlightPart = (partId: number) => {
+    setHighlightedPartId(partId);
+    setTimeout(() => {
+      setHighlightedPartId(null);
+    }, 2000); // 2초 후 하이라이트 제거
   };
 
   return (
@@ -193,9 +275,9 @@ const handleSelectPart = (part: Part) => {
           <div style={{ flex: 1 }}>
             <label style={{ display: "block", fontWeight: 500, marginBottom: "2px" }}>차량재고</label>
             <input
-              type="number"
-              value={formPart.vehicle_stock ?? 0}
-              onChange={(e) => setFormPart({ ...formPart, vehicle_stock: Number(e.target.value) })}
+              type="text"
+              value={formPart.vehicle_stock === "" || formPart.vehicle_stock === undefined ? "" : formPart.vehicle_stock}
+              onChange={(e) => handleStockChange('vehicle_stock', e.target.value)}
               style={{ width: "100%", padding: "6px", border: "1px solid #ccc", borderRadius: "4px" }}
             />
           </div>
@@ -203,9 +285,9 @@ const handleSelectPart = (part: Part) => {
           <div style={{ flex: 1 }}>
             <label style={{ display: "block", fontWeight: 500, marginBottom: "2px" }}>창고재고</label>
             <input
-              type="number"
-              value={formPart.warehouse_stock ?? 0}
-              onChange={(e) => setFormPart({ ...formPart, warehouse_stock: Number(e.target.value) })}
+              type="text"
+              value={formPart.warehouse_stock === "" || formPart.warehouse_stock === undefined ? "" : formPart.warehouse_stock}
+              onChange={(e) => handleStockChange('warehouse_stock', e.target.value)}
               style={{ width: "100%", padding: "6px", border: "1px solid #ccc", borderRadius: "4px" }}
             />
           </div>
@@ -213,7 +295,8 @@ const handleSelectPart = (part: Part) => {
           <div style={{ flex: 1 }}>
             <label style={{ display: "block", fontWeight: 500, marginBottom: "2px" }}>부품값</label>
             <input
-              value={(formPart.price ?? 0).toLocaleString()}
+              type="text"
+              value={formPart.price === "" || formPart.price === undefined ? "" : formPart.price}
               onChange={(e) => handlePriceChange(e.target.value)}
               style={{ width: "100%", padding: "6px", border: "1px solid #ccc", borderRadius: "4px" }}
             />
@@ -256,6 +339,42 @@ const handleSelectPart = (part: Part) => {
         >
           폼 초기화
         </button>
+
+        <div style={{ display: "flex", gap: "8px" }}>
+          <button
+            style={{
+              flex: 1,
+              backgroundColor: showZeroVehicleStock ? "#1e40af" : "#3b82f6",
+              color: "white",
+              fontWeight: 600,
+              padding: "4px 8px",
+              borderRadius: "8px",
+              border: "none",
+              cursor: "pointer",
+              boxShadow: "none",
+            }}
+            onClick={() => setShowZeroVehicleStock(!showZeroVehicleStock)}
+          >
+            {showZeroVehicleStock ? "전체 부품 보기" : "차량재고 0인 부품 보기"}
+          </button>
+
+          <button
+            style={{
+              flex: 1,
+              backgroundColor: showLowStock ? "#1e40af" : "#3b82f6",
+              color: "white",
+              fontWeight: 600,
+              padding: "4px 8px",
+              borderRadius: "8px",
+              border: "none",
+              cursor: "pointer",
+              boxShadow: "none",
+            }}
+            onClick={() => setShowLowStock(!showLowStock)}
+          >
+            {showLowStock ? "전체 부품 보기" : "3개 이하인 부품 보기"}
+          </button>
+        </div>
       </div>
 
       {/* 부품 테이블 */}
@@ -273,12 +392,20 @@ const handleSelectPart = (part: Part) => {
           </thead>
           <tbody>
             {parts.map((part) => (
-              <tr key={part.id} style={{ cursor: "pointer" }} onClick={() => handleSelectPart(part)}>
+              <tr 
+                key={part.id} 
+                style={{ 
+                  cursor: "pointer",
+                  backgroundColor: highlightedPartId === part.id ? "#fef3c7" : "transparent",
+                  transition: "background-color 0.3s ease"
+                }} 
+                onClick={() => handleSelectPart(part)}
+              >
                 <td style={{ border: "1px solid #ccc", padding: "4px" }}>{part.name}</td>
                 <td style={{ border: "1px solid #ccc", padding: "4px" }}>{(part.aliase ?? []).join(", ")}</td>
-                <td style={{ border: "1px solid #ccc", padding: "4px" }}>{part.vehicle_stock}</td>
-                <td style={{ border: "1px solid #ccc", padding: "4px" }}>{part.warehouse_stock}</td>
-                <td style={{ border: "1px solid #ccc", padding: "4px" }}>{part.price.toLocaleString()}</td>
+                <td style={{ border: "1px solid #ccc", padding: "4px" }}>{part.vehicle_stock === "" ? "-" : part.vehicle_stock}</td>
+                <td style={{ border: "1px solid #ccc", padding: "4px" }}>{part.warehouse_stock === "" ? "-" : part.warehouse_stock}</td>
+                <td style={{ border: "1px solid #ccc", padding: "4px" }}>{part.price === "" || part.price === 0 ? "-" : (typeof part.price === "number" ? part.price.toLocaleString() : (part.price && !isNaN(Number(part.price)) ? Number(part.price).toLocaleString() : part.price))}</td>
                 <td style={{ border: "1px solid #ccc", padding: "4px" }}>
                   <button
                     style={{
