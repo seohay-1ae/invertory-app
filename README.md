@@ -1,36 +1,46 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# inventory_app
 
-## Getting Started
+## 프로젝트 개요
 
-First, run the development server:
+사이드 프로젝트: 부품 재고 관리 서비스
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+**inventory_app**은 부품의 재고현황을 쉽게 확인할 수 있는 서비스로, 복잡한 부품고드 대신 직관적인 별칭으로 검색하여 원하는 부품을 빠르게 필터링할 수 있는 기능을 제공합니다.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 프로젝트 기간
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+2025년 8월 18일 ~ 2025년 8월 19일
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+### 사용 언어 및 기술 스택
+- 프론트: Next.js + React + Tailwind
+- 백: Supabase BaaS
+- 데이터: PostgreSQL(Supabase)
+- 배포: Vercel
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 협업 툴
 
-## Deploy on Vercel
+- 1인 개발
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### 개발 도구
+
+ - VSCode
+---
+
+### 구현 목표
+
+- 부품 조회, 등록, 수정, 삭제
+- 재고가 특정 수량 이하인 부품 필터링하여 조회하기
+- 부품에 별칭 지정하기
+- 검색기능
+---
+
+프로젝트 관련 자세한 내용과 회고는 Velog 및 GitHub 레포지토리를 참고해 주세요.
+- [Velog 개발일지 및 회고](https://velog.io/@seoha1ae/%EC%82%AC%EC%9D%B4%EB%93%9C-%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8-inventory-app)
+

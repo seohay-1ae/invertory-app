@@ -22,7 +22,7 @@ export default function PartsPage() {
     const { data, error } = await supabase
       .from("inventory")
       .select("*")
-      .order("id", { ascending: true });
+      .order("name", { ascending: true });
 
     if (error) {
       console.error(error);
@@ -34,14 +34,45 @@ export default function PartsPage() {
 
     let filteredParts = allPartsData;
 
-    // 검색 필터
+    // 검색 필터 - 모든 경우의 수로 검색 가능
     if (search.trim() !== "") {
-      const lowerSearch = search.toLowerCase().replace(/\s/g, ""); // 공백 제거
-      filteredParts = filteredParts.filter((p) => {
-        const name = p.name.toLowerCase().replace(/\s/g, "");
-        const aliase = (p.aliase ?? []).map((a) => a.toLowerCase().replace(/\s/g, ""));
-        return name.includes(lowerSearch) || aliase.some((a) => a.includes(lowerSearch));
-      });
+      // 검색어를 공백으로 분리하고 1자 이상인 단어만 필터링
+      const searchTerms = search.toLowerCase()
+        .split(/\s+/)
+        .filter(term => term.length >= 1);
+      
+      // 검색어가 있는 경우에만 필터링 수행
+      if (searchTerms.length > 0) {
+        filteredParts = filteredParts.filter((p) => {
+          const name = p.name.toLowerCase().replace(/\s/g, "");
+          const aliase = (p.aliase ?? []).map((a) => a.toLowerCase().replace(/\s/g, ""));
+          
+          // 모든 검색어가 부품명 또는 별칭에 포함되어 있는지 확인
+          return searchTerms.every(term => {
+            // 직접 포함 검색
+            if (name.includes(term) || aliase.some((a) => a.includes(term))) {
+              return true;
+            }
+            
+            // 별칭들을 하나의 문자열로 합쳐서 검색 (연결된 검색 지원)
+            const combinedAliase = aliase.join("");
+            if (combinedAliase.includes(term)) {
+              return true;
+            }
+            
+            // 검색어의 각 문자가 별칭에 포함되어 있는지 확인 (유연한 검색)
+            if (term.length >= 2) {
+              // 검색어의 각 문자를 별칭에서 찾을 수 있는지 확인
+              const termChars = term.split("");
+              return termChars.every(char => 
+                aliase.some((a) => a.includes(char))
+              );
+            }
+            
+            return false;
+          });
+        });
+      }
     }
 
     // 재고 부족 필터 (차량재고 + 창고재고 <= 3)
@@ -137,7 +168,6 @@ export default function PartsPage() {
   const handleUpdatePart = async () => {
     if (!formPart.id) return;
 
-     // formPart.aliase를 string[]로 변환
   const updateData: Partial<Part> = {
     ...formPart,
     aliase: normalizeAliase(formPart.aliase),
@@ -161,7 +191,18 @@ export default function PartsPage() {
 
   // 삭제
   const handleDeletePart = async (id: number) => {
-    if (!confirm("정말 삭제하시겠습니까?")) return;
+    // 삭제할 부품 정보 찾기
+    const partToDelete = allParts.find(part => part.id === id);
+    if (!partToDelete) return;
+
+    // 동적 삭제 확인 메시지 생성
+    const partName = partToDelete.name;
+    const aliase = partToDelete.aliase && partToDelete.aliase.length > 0 
+      ? `(${partToDelete.aliase.join(", ")})` 
+      : "";
+    const confirmMessage = `정말 "${partName}"${aliase}을 삭제하시겠습니까?`;
+
+    if (!confirm(confirmMessage)) return;
 
     const { error } = await supabase.from("inventory").delete().eq("id", id);
 
@@ -175,7 +216,7 @@ export default function PartsPage() {
       fetchParts();
       showToast("부품이 성공적으로 삭제되었습니다", "success");
     }
-};
+  };
 
   // 테이블 행 클릭 -> 폼으로 데이터 보내기
 const handleSelectPart = (part: Part) => {
